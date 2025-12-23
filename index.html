@@ -151,16 +151,42 @@
     </div>
 
     <div class="loading-message">
-        <span id="loadingText">방 정보를 정리하는 중</span><span class="dots"></span>
+        <span id="loadingText">방 정보를 정리하는 중</span>
+        <span id="dots" class="dots"></span>
     </div>
 
-    <div class="sub-message">
+    <div id="subMessage" class="sub-message">
         잠시만 기다려 주세요
     </div>
 
 </div>
 
 <script>
+    const BACKEND = "https://dorm-cleaning-management-test.onrender.com";
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    const textEl = document.getElementById("loadingText");
+    const iconEl = document.getElementById("spinnerIcon");
+    const subMessageEl = document.getElementById("subMessage");
+    const spinnerWrapper = document.querySelector(".spinner-wrapper");
+    const dotsEl = document.getElementById("dots");
+
+    /* =========================
+       잘못된 QR 처리
+       ========================= */
+    if (!token) {
+        textEl.innerText = "잘못된 QR 코드입니다";
+        iconEl.className = "fa-solid fa-circle-xmark spinner-icon";
+
+        // 로딩 요소 숨기기
+        spinnerWrapper.style.display = "none";
+        subMessageEl.style.display = "none";
+        dotsEl.style.display = "none";   // ✅ 핵심
+
+        throw new Error("token missing");
+    }
+
     /* =========================
        문구 + 아이콘 매핑
        ========================= */
@@ -171,9 +197,6 @@
         { text: "오늘도 깨끗하게 준비 중", icon: "fa-wand-magic-sparkles" },
         { text: "거의 다 왔어요", icon: "fa-circle-check" }
     ];
-
-    const textEl = document.getElementById("loadingText");
-    const iconEl = document.getElementById("spinnerIcon");
 
     let index = 0;
 
@@ -187,8 +210,25 @@
             iconEl.classList.remove("fade");
             index++;
         }, 300);
-
     }, 2500);
+
+    async function wakeServer() {
+        try {
+            const res = await fetch(`${BACKEND}/health`, {
+                cache: "no-store"
+            });
+
+            if (res.ok) {
+                window.location.href =
+                    `${BACKEND}/check?token=${encodeURIComponent(token)}`;
+                return;
+            }
+        } catch (e) {}
+
+        setTimeout(wakeServer, 3000);
+    }
+
+    wakeServer();
 </script>
 
 </body>
